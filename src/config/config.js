@@ -1,2 +1,2 @@
-export const BASE_URL = 'https://motionheaven.in/mlm/app/';
-export const ASSETS_URL = 'https://motionheaven.in/mlm/docs/';
+export const BASE_URL = 'https://bajrangee.com/app/';
+export const ASSETS_URL = 'https://bajrangee.com/docs/';

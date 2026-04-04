@@ -3,7 +3,7 @@ import {View, Text, FlatList, ActivityIndicator, StyleSheet,} from 'react-native
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import CustomHeader from './components/CustomHeader';
-import { BASE_URL } from './config/config';
+import { BASE_URL } from './config/config';0
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -122,31 +122,83 @@ const UpcomingList = ({ route }) => {
     }
   };
 
- const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <Text style={styles.title}>{item.title}</Text>
+const formatNumbers = (numbersString) => {
+  if (!numbersString) return [];
+  const nums = numbersString.split(',');
+  const countMap = {};
+  nums.forEach(num => {
+    countMap[num] = (countMap[num] || 0) + 1;
+  });
+  return Object.entries(countMap);
+};
+
+const renderItem = ({ item }) => {
+  const isNight = item.type === 'Night';
+
+  return (
+    <View style={[styles.card, isNight && styles.cardNight]}>
+      <Text style={[styles.title, isNight && styles.titleNight]}>
+        {item.title} {item.type ? ` (${item.type})` : ''}
+      </Text>
 
       <View style={styles.row}>
-        <Text style={styles.label}>Ticket No:</Text>
-        <Text style={styles.value}>{item.number}</Text>
+        <Text style={[styles.label, isNight && styles.textNight]}>
+          Ticket No:
+        </Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+          {formatNumbers(item.number).map(([num, qty]) => (
+            <View key={num} style={styles.numberContainer}>
+
+              <View style={styles.numberBox}>
+                <Text style={styles.numberText}>{num}</Text>
+              </View>
+
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{qty}</Text>
+              </View>
+
+            </View>
+          ))}
+        </View>
+
       </View>
 
       <View style={styles.row}>
-        <Text style={styles.label}>Entry Amount:</Text>
-        <Text style={styles.value}>₹ {item.amount}</Text>
+        <Text style={[styles.label, isNight && styles.textNight]}>
+          Entry Amount:
+        </Text>
+        <Text style={[styles.value, isNight && styles.textNight]}>
+          ₹ {item.amount}
+        </Text>
       </View>
 
       <View style={styles.row}>
-        <Text style={styles.label}>Prize:</Text>
-        <Text style={styles.prize}>₹ {item.prize}</Text>
+        <Text style={[styles.label, isNight && styles.textNight]}>
+          Total Amount:
+        </Text>
+        <Text style={[styles.value, isNight && styles.textNight]}>
+          ₹ {item.amount}
+        </Text>
       </View>
+
       <View style={styles.row}>
-        <Text style={styles.success}>Draw on {item.draw_date} at {item.draw_time}</Text>
+        <Text style={[styles.label, isNight && styles.textNight]}>
+          Prize:
+        </Text>
+        <Text style={[styles.prize, isNight && styles.prizeNight]}>
+          ₹ {item.prize}
+        </Text>
       </View>
 
-
+      <View style={styles.row}>
+        <Text style={[styles.success, isNight && styles.successNight]}>
+          Draw on {item.draw_date} at {item.draw_time}
+        </Text>
+      </View>
     </View>
   );
+};
+
 
 
   if (loading) {
@@ -237,5 +289,65 @@ const styles = StyleSheet.create({
     marginTop: 50,
     color: '#aaa',
     fontSize: 16,
+  },
+  cardNight: {
+    backgroundColor: '#030147',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+
+  titleNight: {
+    color: '#ffd369',
+  },
+
+  textNight: {
+    color: '#fff',
+  },
+
+  prizeNight: {
+    color: '#4caf50',
+    fontWeight: 'bold',
+  },
+
+  successNight: {
+    color: '#ff9800',
+  },
+  numberContainer: {
+    position: 'relative',
+    marginRight: 12,
+  },
+
+  numberBox: {
+    backgroundColor: '#28a745',   // ✅ Green
+    paddingHorizontal: 15,
+    borderRadius: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom:5,
+  },
+
+  numberText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  badge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#dc3545',   // ✅ Red
+    borderRadius: 50,
+    minWidth: 17,
+    height: 17,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+  },
+
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });

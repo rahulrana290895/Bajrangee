@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native'; // <-- import hook
+import { SafeAreaProvider, SafeAreaView  } from 'react-native-safe-area-context';
+
 import { BASE_URL } from './config/config';
 
 const LoginScreen = () => {
@@ -18,6 +20,7 @@ const LoginScreen = () => {
   const [mobile, setMobile] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const checkLogin = async () => {
@@ -28,6 +31,33 @@ const LoginScreen = () => {
     };
     checkLogin();
   }, []);
+useEffect(() => {
+  const checkAppStatus = async () => {
+    try {
+      const response = await fetch(
+        `${BASE_URL}app_status.php`
+      );
+
+      const result = await response.json();
+
+      if (result.data === 'Close') {
+        navigation.replace('AppClosedScreen');
+        return;
+      }
+
+      // Agar Open hai to login check kare
+      const userId = await AsyncStorage.getItem('userId');
+      if (userId) {
+        navigation.replace('HomeScreen');
+      }
+
+    } catch (error) {
+      Alert.alert('Error', 'Unable to check app status');
+    }
+  };
+
+  checkAppStatus();
+}, []);
 
   const handleLogin = async () => {
     if (!mobile || !password) {
@@ -65,6 +95,7 @@ const LoginScreen = () => {
   };
 
   return (
+<SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
     <View style={styles.container}>
       {/* LOGO */}
       <Image
@@ -86,14 +117,25 @@ const LoginScreen = () => {
         onChangeText={setMobile}
       />
 
-      <TextInput
-        placeholder="Password"
-        placeholderTextColor="#ffa41c"
-        secureTextEntry
-        style={styles.input}
-        value={password}
-        onChangeText={setPassword}
-      />
+<View style={styles.passwordContainer}>
+  <TextInput
+    placeholder="Password"
+    placeholderTextColor="#ffa41c"
+    secureTextEntry={!showPassword}
+    style={styles.passwordInput}
+    value={password}
+    onChangeText={setPassword}
+  />
+
+  <TouchableOpacity
+    style={styles.eyeButton}
+    onPress={() => setShowPassword(!showPassword)}
+  >
+    <Text style={{ color: '#ffa41c', fontSize: 16 }}>
+      {showPassword ? 'Hide' : 'Show'}
+    </Text>
+  </TouchableOpacity>
+</View>
 
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>
@@ -101,6 +143,7 @@ const LoginScreen = () => {
         </Text>
       </TouchableOpacity>
     </View>
+    </SafeAreaView>
   );
 };
 
@@ -147,5 +190,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#ffa41c',
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+
+  passwordInput: {
+    flex: 1,
+    padding: 14,
+    fontSize: 16,
+    color: '#ffa41c',
+  },
+
+  eyeButton: {
+    paddingHorizontal: 12,
   },
 });

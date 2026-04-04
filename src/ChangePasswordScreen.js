@@ -7,8 +7,10 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView  } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { BASE_URL } from './config/config';
 
 const ChangePasswordScreen = ({ navigation }) => {
@@ -56,6 +58,8 @@ const ChangePasswordScreen = ({ navigation }) => {
   };
 
   return (
+    <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
+
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
@@ -97,6 +101,8 @@ const ChangePasswordScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
     </View>
+      </SafeAreaView>
+
   );
 };
 

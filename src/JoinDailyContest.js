@@ -7,20 +7,25 @@ import {
   FlatList,
   Alert,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView  } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BASE_URL, ASSETS_URL } from './config/config';
+import { BASE_URL } from './config/config';
 
 export default function JoinDailyContest({ route, navigation }) {
   const { contest } = route.params;
 
-  const [selectedSlots, setSelectedSlots] = useState([]);
+  const [selectedSlots, setSelectedSlots] = useState({});
   const [userBalance, setUserBalance] = useState(0);
   const [loadingBalance, setLoadingBalance] = useState(true);
 
   const slots = Array.from({ length: contest.slot }, (_, i) => i + 1);
-  const totalAmount = selectedSlots.length * contest.cost;
 
-  // ✅ fetch balance on screen load
+  const totalSlots = Object.values(selectedSlots).reduce(
+    (sum, qty) => sum + qty,
+    0
+  );
+  const totalAmount = totalSlots * contest.cost;
+
   useEffect(() => {
     fetchUserBalance();
   }, []);
@@ -28,30 +33,37 @@ export default function JoinDailyContest({ route, navigation }) {
   const fetchUserBalance = async () => {
     try {
       const userId = await AsyncStorage.getItem('userId');
-
       const response = await fetch(
         `${BASE_URL}get_user_balance.php?user_id=${userId}`
       );
       const result = await response.json();
-
       setUserBalance(Number(result.balance));
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Unable to fetch wallet balance');
     } finally {
       setLoadingBalance(false);
     }
   };
 
-  const toggleSlot = (slot) => {
-    if (selectedSlots.includes(slot)) {
-      setSelectedSlots(selectedSlots.filter((s) => s !== slot));
-    } else {
-      setSelectedSlots([...selectedSlots, slot]);
-    }
+  const addSlot = (slot) => {
+    setSelectedSlots((prev) => ({
+      ...prev,
+      [slot]: (prev[slot] || 0) + 1,
+    }));
+  };
+
+  const removeSlot = (slot) => {
+    setSelectedSlots((prev) => {
+      if (!prev[slot]) return prev;
+      const updated = { ...prev };
+      if (updated[slot] === 1) delete updated[slot];
+      else updated[slot] -= 1;
+      return updated;
+    });
   };
 
   const joinContest = () => {
-    if (selectedSlots.length === 0) {
+    if (totalSlots === 0) {
       Alert.alert('Select Slot', 'Please choose at least one slot');
       return;
     }
@@ -66,14 +78,10 @@ export default function JoinDailyContest({ route, navigation }) {
 
     Alert.alert(
       'Confirm Join',
-      `Slots: ${selectedSlots.join(', ')}
-Total Amount: ₹${totalAmount}`,
+      `Total Entries: ${totalSlots}\nTotal Amount: ₹${totalAmount}`,
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: () => submitJoin(),
-        },
+        { text: 'Confirm', onPress: submitJoin },
       ]
     );
   };
@@ -96,55 +104,69 @@ Total Amount: ₹${totalAmount}`,
 
       if (result.success) {
         setUserBalance(result.new_balance);
-
-        Alert.alert(
-          'Success',
-          'Contest Joined Successfully',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                setSelectedSlots([]);
-                navigation.navigate('HomeScreen');
-              },
-            },
-          ]
-        );
-      }
-       else {
+        setSelectedSlots({});
+        Alert.alert('Success', 'Contest Joined', [
+          { text: 'OK', onPress: () => navigation.goBack() },
+        ]);
+      } else {
         Alert.alert('Failed', result.message);
       }
-    } catch (err) {
+    } catch {
       Alert.alert('Error', 'Something went wrong');
     }
   };
 
   return (
+    <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
+
     <View style={styles.container}>
       <Text style={styles.title}>{contest.title}</Text>
 
       <Text style={styles.balanceText}>
-        💼 Wallet Balance:{' '}
-        {loadingBalance ? 'Loading...' : `₹${userBalance}`}
+        💼 Wallet: {loadingBalance ? '...' : `₹${userBalance}`}
       </Text>
-
       <Text style={styles.text}>🏆 Prize: ₹{contest.prize}</Text>
       <Text style={styles.text}>💰 Entry Per Slot: ₹{contest.cost}</Text>
-
+      <Text style={styles.text}>⏰ {contest.draw_date} {contest.draw_time}</Text>
       <Text style={styles.slotTitle}>Choose Your Slots</Text>
+
 
       <FlatList
         data={slots}
         numColumns={6}
         keyExtractor={(item) => item.toString()}
         renderItem={({ item }) => {
-          const isSelected = selectedSlots.includes(item);
+          const qty = selectedSlots[item] || 0;
+
           return (
             <TouchableOpacity
-              style={[styles.slotBox, isSelected && styles.selectedSlot]}
-              onPress={() => toggleSlot(item)}
+              style={[styles.slotBox, qty > 0 && styles.selectedSlot]}
+              onPress={() => addSlot(item)}
+              activeOpacity={0.8}
             >
-              <Text style={[styles.slotText, isSelected && { color: '#fff' }]}>
+              {/* LEFT TOP QTY */}
+              {qty > 0 && (
+                <View style={styles.qtyBadge}>
+                  <Text style={styles.badgeText}>{qty}</Text>
+                </View>
+              )}
+
+              {/* RIGHT TOP MINUS */}
+              {qty > 0 && (
+                <TouchableOpacity
+                  style={styles.minusBadge}
+                  onPress={() => removeSlot(item)}
+                >
+                  <Text style={styles.minusText}>−</Text>
+                </TouchableOpacity>
+              )}
+
+              <Text
+                style={[
+                  styles.slotText,
+                  qty > 0 && { color: '#fff' },
+                ]}
+              >
                 {item}
               </Text>
             </TouchableOpacity>
@@ -153,70 +175,84 @@ Total Amount: ₹${totalAmount}`,
       />
 
       <Text style={styles.totalText}>
-        Selected: {selectedSlots.length} | Total: ₹{totalAmount}
+        Entries: {totalSlots} | ₹{totalAmount}
       </Text>
 
       <TouchableOpacity style={styles.joinBtn} onPress={joinContest}>
         <Text style={styles.joinText}>CONFIRM & JOIN</Text>
       </TouchableOpacity>
     </View>
+        </SafeAreaView>
+
   );
 }
 
-
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, padding: 16, backgroundColor: '#f5f5f5' },
+  title: { fontSize: 20, fontWeight: '700', marginBottom: 8 },
+  balanceText: { fontSize: 14, marginBottom: 10 },
+
+  slotBox: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#f5f5f5',
+    margin: 6,
+    height: 50,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    position: 'relative',
   },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 10,
+  selectedSlot: { backgroundColor: '#4CAF50' },
+  slotText: { fontWeight: '700', color: '#333' },
+
+  qtyBadge: {
+    position: 'absolute',
+    top: -6,
+    left: -6,
+    backgroundColor: 'green',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  text: {
-    fontSize: 14,
-    marginBottom: 4,
-    color: '#444',
+  badgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
+
+  minusBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: 'red',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  minusText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+
+  totalText: {
+    marginTop: 12,
+    fontSize: 16,
+    textAlign: 'center',
   },
   slotTitle: {
     fontSize: 16,
     fontWeight: '700',
     marginTop: 20,
   },
-  slotBox: {
-    flex: 1,
-    margin: 6,
-    paddingVertical: 10,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    alignItems: 'center',
-    elevation: 2,
-  },
-  selectedSlot: {
-    backgroundColor: '#4CAF50',
-  },
-  slotText: {
-    fontWeight: '600',
-    color: '#333',
-  },
-  totalText: {
-    marginTop: 15,
-    fontSize: 16,
-    textAlign: 'center',
-    color: '#000',
-  },
+
   joinBtn: {
-    marginTop: 15,
+    marginTop: 14,
     backgroundColor: '#ff9800',
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
   },
-  joinText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
-  },
+  joinText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  text: {    fontSize: 14,
+             marginBottom: 4,
+             color: '#444',
+}
 });

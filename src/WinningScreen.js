@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {View, Text, FlatList, ActivityIndicator, StyleSheet,} from 'react-native';
+import { SafeAreaProvider, SafeAreaView  } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import CustomHeader from './components/CustomHeader';
@@ -123,37 +124,61 @@ const WinningList = ({ route }) => {
     }
   };
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <Text style={styles.title}>
+const renderItem = ({ item }) => {
+  const isNight = item.type === 'Night';
+
+  return (
+  <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
+    <View style={[styles.card, isNight && styles.cardNight]}>
+      <Text style={[styles.title, isNight && styles.titleNight]}>
         (ID: #{item.cid}) {item.title}
+        {item.type ? ` (${item.type})` : ''}
       </Text>
 
       <View style={styles.row}>
-        <Text style={styles.label}>Contest Cost:</Text>
-        <Text style={styles.value}>₹ {item.cost}</Text>
+        <Text style={[styles.label, isNight && styles.textNight]}>
+          Contest Cost:
+        </Text>
+        <Text style={[styles.value, isNight && styles.textNight]}>
+          ₹ {item.cost}
+        </Text>
       </View>
 
       <View style={styles.row}>
-        <Text style={styles.label}>Winning Number:</Text>
-        <Text style={styles.value}>{item.number}</Text>
+        <Text style={[styles.label, isNight && styles.textNight]}>
+          Winning Number:
+        </Text>
+        <Text style={[styles.value, isNight && styles.textNight]}>
+          {item.number}
+        </Text>
       </View>
 
       <View style={styles.row}>
-        <Text style={styles.label}>My Lottery:</Text>
-        <Text style={styles.value}>{item.join_number}</Text>
+        <Text style={[styles.label, isNight && styles.textNight]}>
+          My Lottery:
+        </Text>
+        <Text style={[styles.value, isNight && styles.textNight]}>
+          {item.join_number}
+        </Text>
       </View>
 
       <View style={styles.row}>
-        <Text style={styles.label}>Winning Date:</Text>
-        <Text style={styles.value}>{item.res_date}</Text>
+        <Text style={[styles.label, isNight && styles.textNight]}>
+          Winning Date:
+        </Text>
+        <Text style={[styles.value, isNight && styles.textNight]}>
+          {item.res_date}
+        </Text>
       </View>
 
-      <Text style={styles.success}>
+      <Text style={[styles.success, isNight && styles.successNight]}>
         🎉 Your Winning Amount is ₹ {item.win_amount}
       </Text>
     </View>
+    </SafeAreaView>
   );
+};
+
 
   if (loading) {
     return (
@@ -244,4 +269,22 @@ const styles = StyleSheet.create({
     color: '#aaa',
     fontSize: 16,
   },
+  cardNight: {
+    backgroundColor: '#030147',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+
+  titleNight: {
+    color: '#ffd369',
+  },
+
+  textNight: {
+    color: '#eaeaea',
+  },
+
+  successNight: {
+    color: '#4caf50',
+  },
+
 });

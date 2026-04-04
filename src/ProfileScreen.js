@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { SafeAreaProvider, SafeAreaView  } from 'react-native-safe-area-context';
 import { BASE_URL } from './config/config';
 
 const ProfileScreen = ({ navigation }) => {
@@ -53,6 +54,8 @@ const ProfileScreen = ({ navigation }) => {
   if (!user) return null;
 
   return (
+    <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
+
     <View style={{ flex: 1 }}>
       {/* 🔹 Custom Header */}
       <View style={styles.headerBar}>
@@ -86,6 +89,8 @@ const ProfileScreen = ({ navigation }) => {
         </View>
       </ScrollView>
     </View>
+      </SafeAreaView>
+
   );
 };
 

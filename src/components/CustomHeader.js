@@ -34,7 +34,7 @@ export default function CustomHeader({ navigation }) {
           source={require('../assets/logo.png')}
           style={styles.logo}
         />
-        <Text style={styles.title}>Banjrangee</Text>
+        <Text style={styles.title}>Bajrangee</Text>
       </View>
 
       {/* Right: Balance + Settings */}

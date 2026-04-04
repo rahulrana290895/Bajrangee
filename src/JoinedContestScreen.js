@@ -43,7 +43,7 @@ const JoinedContestScreen = () => {
   const renderItem = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.rowBetween}>
-        <Text style={styles.title}>(#{item.contest_id}) {item.contest_title}</Text>
+        <Text style={styles.title}>(#{item.contest_id}) {item.contest_title} ({item.type})</Text>
 
         <View
           style={[
@@ -57,7 +57,7 @@ const JoinedContestScreen = () => {
 
       <Text style={styles.text}>Ticket Cost: ₹{item.contest_cost}</Text>
       <Text style={styles.text}>Contest Prize: ₹{item.contest_prize}</Text>
-      <Text style={styles.text}>My Number: {item.my_number}</Text>
+      <Text style={styles.text}>My Number: {item.my_number} x ({item.qty})</Text>
       <Text style={styles.text}>Winning Number: {item.win_number}</Text>
 
 

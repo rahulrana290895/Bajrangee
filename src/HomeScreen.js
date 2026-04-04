@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,6 +9,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  ImageBackground,
+  Modal
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CustomHeader from './components/CustomHeader';
@@ -15,236 +18,168 @@ import { BASE_URL, ASSETS_URL } from './config/config';
 
 export default function HomeScreen({ navigation }) {
   const [userId, setUserId] = useState(null);
-  const [contests, setContests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [dailyContests, setDailyContests] = useState([]);
-  const [dailyLoading, setDailyLoading] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [categories, setCategories] = useState([]);
+  const flatListRef = useRef();
 
-  useEffect(() => {
-  const getUser = async () => {
-    const id = await AsyncStorage.getItem('userId');
-    setUserId(id);
-  };
+    useEffect(() => {
+        getUser();
+        fetchCategories();
+    }, []);
 
-  // Festival Contest
-  fetch(`${BASE_URL}festival_contest.php`)
-    .then(res => res.json())
-    .then(json => {
-      if (json.status) {
-        setContests(json.data);
+    const getUser = async () => {
+      const id = await AsyncStorage.getItem('userId');
+      setUserId(id);
+    };
+
+    const banners = [
+      require('./assets/banner1.jpg'),
+      require('./assets/banner2.jpg'),
+      require('./assets/banner3.jpg'),
+    ];
+
+
+    useEffect(() => {
+      const interval = setInterval(() => {
+        let nextIndex = (currentIndex + 1) % banners.length;
+        setCurrentIndex(nextIndex);
+        flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+      }, 3000);
+
+      return () => clearInterval(interval);
+    }, [currentIndex]);
+
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/category.php`);
+        const json = await res.json();
+        setCategories(json);
+        setLoading(false);
+      } catch (err) {
+        console.log(err);
       }
-      setLoading(false);
-    })
-    .catch(() => setLoading(false));
-
-  // ✅ Daily Contest
-  fetch(`${BASE_URL}daily_contest.php`)
-    .then(res => res.json())
-    .then(json => {
-      if (json.status) {
-        setDailyContests(json.data);
-      }
-      setDailyLoading(false);
-    })
-    .catch(() => setDailyLoading(false));
-
-  getUser();
-}, []);
-
-  const renderContest = ({ item }) => (
-    <View style={styles.card}>
-      <Text style={styles.cardTitle}>{item.title}</Text>
-
-      <Text style={styles.prize}>🏆 Prize : ₹{item.prize}</Text>
-      <Text style={styles.text}>💰 Entry : ₹{item.cost}</Text>
-      <Text style={styles.text}>📅 Draw : {item.draw_date} {item.draw_time}</Text>
-
-      <TouchableOpacity
-        style={styles.joinBtn}
-        onPress={() =>
-          navigation.navigate('JoinFestivalContest', { contest: item })
-        }
-      >
-        <Text style={styles.joinText}>JOIN NOW</Text>
-      </TouchableOpacity>
-    </View>
-  );
-  const renderDailyContest = ({ item }) => (
-  <View style={styles.dailyCard}>
+    };
+  return (
     <View style={{ flex: 1 }}>
-      <Text style={styles.dailyTitle}>{item.title}</Text>
-      <Text style={styles.dailyText}>🏆 Prize: ₹{item.prize}</Text>
-      <Text style={styles.dailyText}>🎟 Slot: {item.slot}</Text>
-      <Text style={styles.dailyText}>
-        ⏰ {item.draw_date} {item.draw_time}
-      </Text>
-    </View>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        <CustomHeader navigation={navigation} />
 
-    <View style={styles.rightBox}>
-      <Text style={styles.cost}>₹{item.cost}</Text>
+            <View style={{ marginTop: 10 }}>
+              <FlatList
+                ref={flatListRef}
+                data={banners}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item, index) => index.toString()}
+                renderItem={({ item }) => (
+                  <Image source={item} style={styles.bannerImage} />
+                )}
+                onMomentumScrollEnd={(e) => {
+                  const index = Math.round(
+                    e.nativeEvent.contentOffset.x /
+                    e.nativeEvent.layoutMeasurement.width
+                  );
+                  setCurrentIndex(index);
+                }}
+              />
+
+              {/* Dots Indicator */}
+              <View style={styles.dotsContainer}>
+                {banners.map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.dot,
+                      currentIndex === index && styles.activeDot,
+                    ]}
+                  />
+                ))}
+              </View>
+            </View>
+
+<View style={{ marginTop: 15, paddingHorizontal: 10 }}>
+  <FlatList
+    data={categories}
+    numColumns={2}
+    keyExtractor={(item) => item.id}
+    columnWrapperStyle={{ justifyContent: 'space-between' }}
+    renderItem={({ item }) => (
       <TouchableOpacity
-        style={styles.dailyJoinBtn}
-        onPress={() =>
-          navigation.navigate('JoinDailyContest', { contest: item })
-        }
+        style={styles.card}
+        onPress={() => {
+          if (item.id == 1) {
+            navigation.navigate('FestivalCategoryContest');
+          } else {
+            navigation.navigate('CategoryContest', {
+              cat_id: item.id,
+            });
+          }
+        }}
       >
-        <Text style={styles.dailyJoinText}>JOIN</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-);
-return (
-    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-      {/* Header */}
-      <CustomHeader navigation={navigation} />
-
-      {/* Banner */}
-      <View style={styles.bannerWrapper}>
         <Image
-          source={{ uri: `${ASSETS_URL}banner.jpg` }}
-          style={styles.banner}
-          resizeMode="cover"
+          source={{ uri: `${item.file}` }}
+          style={styles.cardImage}
         />
-      </View>
-      {/* Contest Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🎉 Festival Contests</Text>
-        {loading ? (
-          <ActivityIndicator size="large" />
-        ) : (
-          <FlatList
-            data={contests}
-            horizontal
-            keyExtractor={item => item.id}
-            renderItem={renderContest}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingLeft: 16 }}
-          />
-        )}
-      </View>
+        <Text style={styles.cardText}>{item.name}</Text>
+      </TouchableOpacity>
+    )}
+  />
+</View>
 
-     <View style={styles.section}>
-       <Text style={styles.sectionTitle}>🔥 Daily Contests</Text>
-
-       {dailyLoading ? (
-         <ActivityIndicator size="large" />
-       ) : (
-         <FlatList
-           data={dailyContests}
-           keyExtractor={item => item.id}
-           renderItem={renderDailyContest}
-           scrollEnabled={false}   // ❌ horizontal / vertical scroll disable
-         />
-       )}
-     </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
+/* ================= STYLES ================= */
+
 const styles = StyleSheet.create({
-  bannerWrapper: {
-    margin: 12,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  banner: {
-    width: '100%',
-    height: 180,
-  },
-  welcomeText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginLeft: 16,
-    marginBottom: 10,
-    color: '#333',
-  },
-  section: {
-    marginTop: 20,
-    paddingBottom: 30,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginLeft: 16,
-    marginBottom: 12,
-    color: '#111',
-  },
-  card: {
-    width: 260,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginRight: 16,
-    elevation: 1,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 6,
-    color: 'blue',
-  },
-  prize: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'green',
-    marginBottom: 6,
-  },
-  text: {
-    fontSize: 13,
-    color: '#555',
-    marginBottom: 4,
-  },
-  joinBtn: {
-    marginTop: 12,
-    backgroundColor: '#ffa41c',
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  joinText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  dailyCard: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginBottom: 12,
-    padding: 14,
-    borderRadius: 14,
-    elevation: 2,
-  },
-  dailyTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#111',
-    marginBottom: 4,
-  },
-  dailyText: {
-    fontSize: 13,
-    color: '#555',
-    marginBottom: 2,
-  },
-  rightBox: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cost: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#e65100',
-    marginBottom: 6,
-  },
-  dailyJoinBtn: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 6,
-    paddingHorizontal: 18,
-    borderRadius: 8,
-  },
-  dailyJoinText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 13,
-  },
+bannerImage: {
+  width: 360,
+  height: 180,
+  borderRadius: 10,
+  marginHorizontal: 5,
+},
+
+dotsContainer: {
+  flexDirection: 'row',
+  justifyContent: 'center',
+  marginTop: 8,
+},
+
+dot: {
+  width: 8,
+  height: 8,
+  borderRadius: 4,
+  backgroundColor: '#ccc',
+  marginHorizontal: 4,
+},
+
+activeDot: {
+  backgroundColor: '#000',
+},
+card: {
+  width: '48%',
+  backgroundColor: '#fff',
+  borderRadius: 10,
+  marginBottom: 15,
+  elevation: 3,
+  alignItems: 'center',
+},
+
+cardImage: {
+  width: '100%',
+  height: 120,
+  borderRadius: 10,
+},
+
+cardText: {
+  marginTop: 8,
+  marginBottom: 8,
+  fontSize: 14,
+  fontWeight: 'bold',
+  textAlign: 'center',
+},
 });

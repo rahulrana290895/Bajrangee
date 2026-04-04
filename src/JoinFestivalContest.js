@@ -8,6 +8,8 @@ import {
   Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaProvider, SafeAreaView  } from 'react-native-safe-area-context';
+
 import { BASE_URL } from './config/config';
 
 export default function JoinFestivalContest({ route, navigation }) {
@@ -143,6 +145,7 @@ useEffect(() => {
 
   // ================= UI =================
   return (
+    <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
     <View style={styles.container}>
       <Text style={styles.title}>{contest.title}</Text>
       <Text style={styles.balance}>
@@ -219,6 +222,8 @@ useEffect(() => {
         </TouchableOpacity>
       </View>
     </View>
+    </SafeAreaView>
+
   );
 }
 
