@@ -171,7 +171,7 @@ card: {
 
 cardImage: {
   width: '100%',
-  height: 120,
+  height: 150,
   borderRadius: 10,
 },
 
